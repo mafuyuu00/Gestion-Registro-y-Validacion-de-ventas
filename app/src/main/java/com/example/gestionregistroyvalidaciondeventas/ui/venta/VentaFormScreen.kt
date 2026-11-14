@@ -1,12 +1,8 @@
 package com.example.gestionregistroyvalidaciondeventas.ui.venta
 
-import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.result.launch
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenuItem
@@ -46,14 +43,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import java.io.File
-import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -74,12 +67,13 @@ fun VentaFormScreen(
         "Convenio Dental Corporativo",
         "Asistencia Hogar 24/7"
     )
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        if (bitmap != null) {
-            val rutaArchivo = guardarBitmapEnArchivos(context, bitmap)
-            viewModel.onRespaldoUriChange(rutaArchivo)
+
+    val pdfPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.onRespaldoUriChange(uri.toString())
+            Toast.makeText(context, "Respaldo PDF cargado exitosamente", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -220,7 +214,7 @@ fun VentaFormScreen(
             )
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Row(
@@ -229,28 +223,22 @@ fun VentaFormScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (estado.respaldoUri != null) "Respaldo capturado" else "Sin respaldo fotográfico",
+                            text = if (estado.respaldoUri != null) "Respaldo PDF cargado" else "Sin respaldo PDF adjunto",
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        OutlinedButton(onClick = { cameraLauncher.launch() }) {
-                            Icon(Icons.Default.CameraAlt, contentDescription = null)
+                        OutlinedButton(onClick = { pdfPickerLauncher.launch("application/pdf") }) {
+                            Icon(Icons.Default.PictureAsPdf, contentDescription = null)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Capturar Foto")
+                            Text("Cargar Respaldo PDF")
                         }
                     }
-                    estado.respaldoUri?.let { ruta ->
-                        val bitmap = remember(ruta) { BitmapFactory.decodeFile(ruta) }
-                        if (bitmap != null) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Image(
-                                bitmap = bitmap.asImageBitmap(),
-                                contentDescription = "Vista previa de respaldo",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(160.dp),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
+                    estado.respaldoUri?.let { uri ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Archivo: $uri",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
             }
@@ -288,12 +276,4 @@ fun VentaFormScreen(
             }
         }
     }
-}
-
-private fun guardarBitmapEnArchivos(context: Context, bitmap: Bitmap): String {
-    val archivo = File(context.filesDir, "respaldo_${System.currentTimeMillis()}.jpg")
-    FileOutputStream(archivo).use { stream ->
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
-    }
-    return archivo.absolutePath
 }

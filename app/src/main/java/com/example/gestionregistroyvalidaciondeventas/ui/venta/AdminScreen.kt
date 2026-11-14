@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.gestionregistroyvalidaciondeventas.data.local.VentaEntity
+import com.example.gestionregistroyvalidaciondeventas.utils.PdfGenerator
 import com.example.gestionregistroyvalidaciondeventas.utils.QrGenerator
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -128,6 +130,18 @@ fun AdminScreen(
                                         Icon(Icons.Default.QrCode, contentDescription = null)
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text("Ver y Descargar QR de Venta")
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Button(
+                                        onClick = {
+                                            val file = PdfGenerator.generarPdfVenta(context, venta)
+                                            Toast.makeText(context, "Comprobante PDF generado en:\n${file.absolutePath}", Toast.LENGTH_LONG).show()
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(Icons.Default.PictureAsPdf, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Descargar Comprobante PDF")
                                     }
                                 }
                             }
