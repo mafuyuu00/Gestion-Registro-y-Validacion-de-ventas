@@ -103,8 +103,10 @@ fun LoginScreen(navController: NavController) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MenuScreen(navController: NavController) {
-    val viewModel: VentaViewModel = viewModel()
+fun MenuScreen(
+    navController: NavController,
+    viewModel: VentaViewModel
+) {
     val isDarkMode by viewModel.isDarkMode.collectAsState()
 
     Scaffold(

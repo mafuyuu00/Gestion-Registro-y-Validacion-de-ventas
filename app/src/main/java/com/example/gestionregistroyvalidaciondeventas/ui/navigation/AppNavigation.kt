@@ -26,7 +26,10 @@ fun AppNavigation() {
             LoginScreen(navController = navController)
         }
         composable("menu") {
-            MenuScreen(navController = navController)
+            MenuScreen(
+                navController = navController,
+                viewModel = ventaViewModel
+            )
         }
         composable("listaVentas") {
             ListaVentasScreen(
