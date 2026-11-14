@@ -198,6 +198,11 @@ fun VentaFormScreen(
                 value = estado.codigoAutorizacion,
                 onValueChange = viewModel::onCodigoAutorizacionChange,
                 label = { Text("Código de autorización (Ej: AUT-101) *") },
+                trailingIcon = {
+                    IconButton(onClick = { navController.navigate("qrScanner") }) {
+                        Icon(Icons.Default.CameraAlt, contentDescription = "Escanear QR")
+                    }
+                },
                 isError = estado.errores.codigoAutorizacion != null,
                 supportingText = {
                     estado.errores.codigoAutorizacion?.let {

@@ -203,4 +203,21 @@ class VentaViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
+
+    fun sincronizarConApi(onResultado: (String) -> Unit) {
+        viewModelScope.launch {
+            val resultado = repository.sincronizarRemoto()
+            resultado.fold(
+                onSuccess = { msg -> onResultado(msg) },
+                onFailure = { err -> onResultado("Error de conexión API: ${err.localizedMessage}") }
+            )
+        }
+    }
+
+    private val _isDarkMode = MutableStateFlow(false)
+    val isDarkMode: StateFlow<Boolean> = _isDarkMode
+
+    fun toggleDarkMode(enabled: Boolean) {
+        _isDarkMode.value = enabled
+    }
 }

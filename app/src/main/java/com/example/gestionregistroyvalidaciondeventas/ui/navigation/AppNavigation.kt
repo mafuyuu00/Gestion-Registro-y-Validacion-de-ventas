@@ -5,9 +5,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.gestionregistroyvalidaciondeventas.ui.venta.AdminScreen
 import com.example.gestionregistroyvalidaciondeventas.ui.venta.ListaVentasScreen
 import com.example.gestionregistroyvalidaciondeventas.ui.venta.LoginScreen
 import com.example.gestionregistroyvalidaciondeventas.ui.venta.MenuScreen
+import com.example.gestionregistroyvalidaciondeventas.ui.venta.QrScannerScreen
 import com.example.gestionregistroyvalidaciondeventas.ui.venta.VentaFormScreen
 import com.example.gestionregistroyvalidaciondeventas.ui.venta.VentaViewModel
 
@@ -34,6 +36,18 @@ fun AppNavigation() {
         }
         composable("ventaForm") {
             VentaFormScreen(
+                navController = navController,
+                viewModel = ventaViewModel
+            )
+        }
+        composable("qrScanner") {
+            QrScannerScreen(
+                navController = navController,
+                ventaViewModel = ventaViewModel
+            )
+        }
+        composable("admin") {
+            AdminScreen(
                 navController = navController,
                 viewModel = ventaViewModel
             )

@@ -20,8 +20,24 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            val keyFile = file("release-key.jks")
+            if (keyFile.exists()) {
+                storeFile = keyFile
+                storePassword = "gestion123"
+                keyAlias = "gestionventas_alias"
+                keyPassword = "gestion123"
+            }
+        }
+    }
+
     buildTypes {
         release {
+            val keyFile = file("release-key.jks")
+            if (keyFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             optimization {
                 enable = false
             }
@@ -39,6 +55,27 @@ android {
 dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.0")
     implementation("androidx.compose.material:material-icons-extended")
+    
+    // Camara y LiveData para Compose
+    implementation("androidx.compose.runtime:runtime-livedata")
+    
+    // CameraX
+    val cameraxVersion = "1.4.2"
+    implementation("androidx.camera:camera-core:$cameraxVersion")
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
+
+    // ML Kit Barcode Scanning
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+
+    // ZXing para generar códigos QR
+    implementation("com.google.zxing:core:3.5.3")
+
+    // Retrofit & Gson Converter para API REST
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
     val roomVersion = "2.8.4"
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
