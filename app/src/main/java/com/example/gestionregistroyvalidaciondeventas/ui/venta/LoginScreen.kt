@@ -155,13 +155,6 @@ fun MenuScreen(navController: NavController) {
             }
 
             Button(
-                onClick = { navController.navigate("qrScanner") },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Escanear Código QR (Validador)")
-            }
-
-            Button(
                 onClick = { navController.navigate("admin") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
