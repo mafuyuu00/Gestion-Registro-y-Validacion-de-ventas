@@ -7,9 +7,9 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 
 interface VentaApiService {
-    @GET("ventas")
-    suspend fun obtenerVentas(): Response<List<VentaEntity>>
+    @GET("todos")
+    suspend fun obtenerVentas(): Response<List<Any>>
 
-    @POST("ventas")
-    suspend fun registrarVenta(@Body venta: VentaEntity): Response<VentaEntity>
+    @POST("posts")
+    suspend fun registrarVenta(@Body venta: VentaEntity): Response<Any>
 }
