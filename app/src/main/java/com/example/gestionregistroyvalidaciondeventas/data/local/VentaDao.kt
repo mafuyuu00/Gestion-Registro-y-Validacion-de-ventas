@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 interface VentaDao {
 
     @Insert
-    suspend fun insertar(venta: VentaEntity)
+    suspend fun insertar(venta: VentaEntity): Long
 
     @Update
     suspend fun actualizar(venta: VentaEntity)
@@ -21,4 +21,10 @@ interface VentaDao {
 
     @Query("SELECT * FROM ventas ORDER BY id DESC")
     fun obtenerTodas(): Flow<List<VentaEntity>>
+
+    @Query("SELECT * FROM ventas")
+    suspend fun obtenerLista(): List<VentaEntity>
+
+    @Query("SELECT * FROM ventas WHERE remoteId = :remoteId LIMIT 1")
+    suspend fun buscarPorRemoteId(remoteId: Long): VentaEntity?
 }

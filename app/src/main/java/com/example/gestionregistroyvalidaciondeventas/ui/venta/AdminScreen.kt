@@ -1,6 +1,12 @@
 package com.example.gestionregistroyvalidaciondeventas.ui.venta
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +24,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.example.gestionregistroyvalidaciondeventas.data.local.VentaEntity
 import com.example.gestionregistroyvalidaciondeventas.utils.PdfGenerator
@@ -31,6 +39,31 @@ fun AdminScreen(
     val ventas by viewModel.ventasList.collectAsState(initial = emptyList())
     val context = LocalContext.current
     var selectedVentaForQr by remember { mutableStateOf<VentaEntity?>(null) }
+    var mostrarPosts by remember { mutableStateOf(false) }
+    val posts by viewModel.postList.collectAsState()
+    var qrPendiente by remember { mutableStateOf<Pair<Bitmap, String>?>(null) }
+
+    fun guardarQrEnGaleria(bitmap: Bitmap, nombre: String) {
+        val guardado = QrGenerator.saveBitmap(context, bitmap, nombre)
+        Toast.makeText(
+            context,
+            if (guardado) "QR guardado en la galería (Imágenes/GestionVentas)" else "No se pudo guardar el QR",
+            Toast.LENGTH_LONG
+        ).show()
+    }
+
+    val permisoAlmacenamientoLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        qrPendiente?.let { (bitmap, nombre) ->
+            if (concedido) {
+                guardarQrEnGaleria(bitmap, nombre)
+            } else {
+                Toast.makeText(context, "Se necesita permiso de almacenamiento para guardar el QR", Toast.LENGTH_LONG).show()
+            }
+        }
+        qrPendiente = null
+    }
 
     Scaffold(
         topBar = {
@@ -73,7 +106,17 @@ fun AdminScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Sincronizar Ventas con API REST (Retrofit)")
+                Text("Sincronizar Ventas con microservicio ms-ventas")
+            }
+
+            OutlinedButton(
+                onClick = {
+                    viewModel.fetchPosts()
+                    mostrarPosts = true
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Consultar API externa (JSONPlaceholder)")
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -121,7 +164,9 @@ fun AdminScreen(
                                 Text("Cliente: ${venta.cliente} | Fecha: ${venta.fechaOperacion}", style = MaterialTheme.typography.bodySmall)
                                 Text("Monto: \$${venta.monto}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
 
-                                if (venta.estado == "Recibida") {
+                                if (venta.estado == VentaViewModel.ESTADO_EN_REVISION ||
+                                    venta.estado == VentaViewModel.ESTADO_RECIBIDA
+                                ) {
                                     Spacer(modifier = Modifier.height(8.dp))
                                     OutlinedButton(
                                         onClick = { selectedVentaForQr = venta },
@@ -131,6 +176,21 @@ fun AdminScreen(
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text("Ver y Descargar QR de Venta")
                                     }
+                                }
+
+                                if (venta.estado == VentaViewModel.ESTADO_EN_REVISION) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Button(
+                                        onClick = { navController.navigate("qrScanner/${venta.id}") },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(Icons.Default.QrCodeScanner, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Validar QR de la venta")
+                                    }
+                                }
+
+                                if (venta.estado == VentaViewModel.ESTADO_RECIBIDA) {
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Button(
                                         onClick = {
@@ -152,8 +212,46 @@ fun AdminScreen(
         }
     }
 
+    if (mostrarPosts) {
+        AlertDialog(
+            onDismissRequest = { mostrarPosts = false },
+            title = { Text("Listado de Posts (API externa)") },
+            text = {
+                if (posts.isEmpty()) {
+                    Text("Cargando publicaciones...")
+                } else {
+                    LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
+                        items(posts) { post ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = "Título: ${post.title}",
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = post.body,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { mostrarPosts = false }) { Text("Cerrar") }
+            }
+        )
+    }
+
     selectedVentaForQr?.let { venta ->
-        val qrContent = "VENTA:${venta.codigoAutorizacion}|CLIENTE:${venta.cliente}|MONTO:${venta.monto}|FECHA:${venta.fechaOperacion}|SERVICIO:${venta.tipoServicio}"
+        val qrContent = viewModel.contenidoQr(venta)
         val qrBitmap = remember(qrContent) { QrGenerator.generateQrBitmap(qrContent) }
 
         AlertDialog(
@@ -179,12 +277,20 @@ fun AdminScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        val file = QrGenerator.saveBitmap(context, qrBitmap, "QR_${venta.codigoAutorizacion}")
-                        Toast.makeText(context, "QR descargado en:\n${file.absolutePath}", Toast.LENGTH_LONG).show()
+                        val nombre = "QR_${venta.codigoAutorizacion}"
+                        val requierePermiso = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+                                PackageManager.PERMISSION_GRANTED
+                        if (requierePermiso) {
+                            qrPendiente = qrBitmap to nombre
+                            permisoAlmacenamientoLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        } else {
+                            guardarQrEnGaleria(qrBitmap, nombre)
+                        }
                         selectedVentaForQr = null
                     }
                 ) {
-                    Text("Descargar QR (Guardar)")
+                    Text("Descargar QR a la galería")
                 }
             },
             dismissButton = {

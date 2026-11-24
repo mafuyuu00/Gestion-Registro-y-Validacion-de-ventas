@@ -31,7 +31,8 @@ import com.google.mlkit.vision.common.InputImage
 fun QrScannerScreen(
     navController: NavController,
     viewModel: QrViewModel = viewModel(),
-    ventaViewModel: VentaViewModel? = null
+    ventaViewModel: VentaViewModel? = null,
+    ventaIdAValidar: Int? = null
 ) {
     val context = LocalContext.current
     var hasCameraPermission by remember {
@@ -183,7 +184,7 @@ fun QrScannerScreen(
                     modifier = Modifier.fillMaxWidth().padding(16.dp)
                 ) {
                     Text(
-                        "QR Detectado / Venta Validada:",
+                        "QR Detectado:",
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
@@ -208,17 +209,20 @@ fun QrScannerScreen(
                     Button(
                         onClick = {
                             val scannedText = qrResult!!.content
-                            if (ventaViewModel != null) {
-                                ventaViewModel.onCodigoAutorizacionChange(scannedText)
-                                Toast.makeText(context, "Código aplicado al formulario de venta", Toast.LENGTH_SHORT).show()
-                                navController.popBackStack()
+                            if (ventaViewModel != null && ventaIdAValidar != null) {
+                                ventaViewModel.validarQrVenta(ventaIdAValidar, scannedText) { valido, mensaje ->
+                                    Toast.makeText(context, mensaje, Toast.LENGTH_LONG).show()
+                                    if (valido) {
+                                        navController.popBackStack()
+                                    }
+                                }
                             } else {
                                 navController.popBackStack()
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Usar como Código de Autorización")
+                        Text("Validar QR y marcar como Recibida")
                     }
 
                     Spacer(Modifier.height(8.dp))

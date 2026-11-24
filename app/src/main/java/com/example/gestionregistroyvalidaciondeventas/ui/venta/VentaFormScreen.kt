@@ -1,8 +1,13 @@
 package com.example.gestionregistroyvalidaciondeventas.ui.venta
 
+import android.Manifest
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,7 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.PictureAsPdf
+
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenuItem
@@ -43,10 +48,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.gestionregistroyvalidaciondeventas.utils.CameraPermissionHelper
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -68,12 +78,22 @@ fun VentaFormScreen(
         "Asistencia Hogar 24/7"
     )
 
-    val pdfPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        if (uri != null) {
-            viewModel.onRespaldoUriChange(uri.toString())
-            Toast.makeText(context, "Respaldo PDF cargado exitosamente", Toast.LENGTH_SHORT).show()
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        if (bitmap != null) {
+            val rutaArchivo = guardarBitmapEnArchivos(context, bitmap)
+            viewModel.onRespaldoUriChange(rutaArchivo)
+        }
+    }
+
+    val permisoCamaraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        if (concedido) {
+            cameraLauncher.launch(null)
+        } else {
+            Toast.makeText(context, "Se necesita permiso de cámara para el respaldo", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -190,17 +210,16 @@ fun VentaFormScreen(
             )
             OutlinedTextField(
                 value = estado.codigoAutorizacion,
-                onValueChange = viewModel::onCodigoAutorizacionChange,
-                label = { Text("Código de autorización (Ej: AUT-101) *") },
-                trailingIcon = {
-                    IconButton(onClick = { navController.navigate("qrScanner") }) {
-                        Icon(Icons.Default.CameraAlt, contentDescription = "Escanear QR")
-                    }
-                },
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Código de autorización *") },
                 isError = estado.errores.codigoAutorizacion != null,
                 supportingText = {
-                    estado.errores.codigoAutorizacion?.let {
-                        Text(text = it, color = MaterialTheme.colorScheme.error)
+                    val error = estado.errores.codigoAutorizacion
+                    if (error != null) {
+                        Text(text = error, color = MaterialTheme.colorScheme.error)
+                    } else {
+                        Text("Asignado automáticamente")
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -223,22 +242,34 @@ fun VentaFormScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (estado.respaldoUri != null) "Respaldo PDF cargado" else "Sin respaldo PDF adjunto",
+                            text = if (estado.respaldoUri != null) "Respaldo capturado" else "Sin respaldo fotográfico",
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        OutlinedButton(onClick = { pdfPickerLauncher.launch("application/pdf") }) {
-                            Icon(Icons.Default.PictureAsPdf, contentDescription = null)
+                        OutlinedButton(onClick = {
+                            if (CameraPermissionHelper.hasCameraPermission(context)) {
+                                cameraLauncher.launch(null)
+                            } else {
+                                permisoCamaraLauncher.launch(Manifest.permission.CAMERA)
+                            }
+                        }) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Cargar Respaldo PDF")
+                            Text("Capturar Foto")
                         }
                     }
-                    estado.respaldoUri?.let { uri ->
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Archivo: $uri",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                    estado.respaldoUri?.let { ruta ->
+                        val bitmap = remember(ruta) { BitmapFactory.decodeFile(ruta) }
+                        if (bitmap != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Vista previa de respaldo",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(160.dp),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
                     }
                 }
             }
@@ -264,16 +295,24 @@ fun VentaFormScreen(
                 Button(
                     onClick = {
                         if (viewModel.validarFormulario()) {
-                            viewModel.guardar(estadoDestino = "Recibida") {
+                            viewModel.guardar(estadoDestino = VentaViewModel.ESTADO_EN_REVISION) {
                                 navController.popBackStack()
                             }
                         }
                     },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Enviar (Recibida)")
+                    Text("Enviar a revisión")
                 }
             }
         }
     }
+}
+
+private fun guardarBitmapEnArchivos(context: Context, bitmap: Bitmap): String {
+    val archivo = File(context.filesDir, "respaldo_${System.currentTimeMillis()}.jpg")
+    FileOutputStream(archivo).use { stream ->
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+    }
+    return archivo.absolutePath
 }

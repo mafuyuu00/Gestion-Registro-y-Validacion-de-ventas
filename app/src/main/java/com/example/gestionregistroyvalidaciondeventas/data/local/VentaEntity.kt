@@ -13,5 +13,6 @@ data class VentaEntity(
     val codigoAutorizacion: String,
     val respaldoUri: String? = null,
     val estado: String = "Borrador",
-    val observaciones: String = ""
+    val observaciones: String = "",
+    val remoteId: Long? = null
 )

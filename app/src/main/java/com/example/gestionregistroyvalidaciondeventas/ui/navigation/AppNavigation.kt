@@ -2,7 +2,9 @@ package com.example.gestionregistroyvalidaciondeventas.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
+import androidx.navigation.navArgument
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.gestionregistroyvalidaciondeventas.ui.venta.AdminScreen
@@ -43,10 +45,14 @@ fun AppNavigation() {
                 viewModel = ventaViewModel
             )
         }
-        composable("qrScanner") {
+        composable(
+            route = "qrScanner/{ventaId}",
+            arguments = listOf(navArgument("ventaId") { type = NavType.IntType })
+        ) { backStackEntry ->
             QrScannerScreen(
                 navController = navController,
-                ventaViewModel = ventaViewModel
+                ventaViewModel = ventaViewModel,
+                ventaIdAValidar = backStackEntry.arguments?.getInt("ventaId")
             )
         }
         composable("admin") {

@@ -12,5 +12,6 @@ data class VentaUiState(
     val observaciones: String = "",
     val guardando: Boolean = false,
     val guardadoExitosamente: Boolean = false,
-    val errores: VentaErrores = VentaErrores()
+    val errores: VentaErrores = VentaErrores(),
+    val remoteId: Long? = null
 )

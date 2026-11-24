@@ -12,7 +12,7 @@ import java.io.FileOutputStream
 object PdfGenerator {
     fun generarPdfVenta(context: Context, venta: VentaEntity): File {
         val pdfDocument = PdfDocument()
-        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create() // A4 size
+        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
         val page = pdfDocument.startPage(pageInfo)
         val canvas: Canvas = page.canvas
         val paint = Paint().apply {
